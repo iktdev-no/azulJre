@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
 
 env:
-  SRC_JAVA_17_ARM_32: 'https://cdn.azul.com/zulu-embedded/bin/zulu17.38.21-ca-jre17.0.5-linux_aarch32hf.tar.gz'
-  SRC_JAVA_17_ARM_64: 'https://cdn.azul.com/zulu/bin/zulu17.40.19-ca-jdk17.0.6-linux_aarch64.tar.gz'
-  SRC_JAVA_17_x64: 'https://cdn.azul.com/zulu/bin/zulu17.38.21-ca-jre17.0.5-linux_x64.tar.gz'
+  SRC_JAVA_17_ARM_32: 'https://cdn.azul.com/zulu-embedded/bin/zulu17.62.17-ca-jre17.0.17-c2-linux_aarch32hf.tar.gz'
+  SRC_JAVA_17_ARM_64: 'https://cdn.azul.com/zulu/bin/zulu17.62.17-ca-jre17.0.17-linux_aarch64.tar.gz'
+  SRC_JAVA_17_x64: 'https://cdn.azul.com/zulu/bin/zulu17.62.17-ca-jre17.0.17-linux_x64.tar.gz'
 
   CACHE_BASE: '@CacheJ17All'
 

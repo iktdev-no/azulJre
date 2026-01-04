@@ -50,7 +50,7 @@ jobs:
       - name: Create and push manifest
         run: |
           docker manifest create bskjon/azuljava:${{ inputs.JAVA_VERSION }} \
-            --amend bskjon/azuljava:${{ inputs.JAVA_VERSION }}-amd64 \
-            --amend bskjon/azuljava:${{ inputs.JAVA_VERSION }}-arm64
+            --amend bskjon/azuljava@${{ needs.build-amd64.outputs.digest }} \
+            --amend bskjon/azuljava@${{ needs.build-arm64.outputs.digest }}
 
           docker manifest push bskjon/azuljava:${{ inputs.JAVA_VERSION }}

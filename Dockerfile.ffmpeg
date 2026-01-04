@@ -1,0 +1,23 @@
+# Build argument passed from GitHub Actions matrix
+ARG JAVA_VERSION
+
+# Use the correct Azul Java base image for the version
+FROM bskjon/azuljava:${JAVA_VERSION}
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+
+# Install ffmpeg
+RUN mkdir -p /src/input && \
+    apt-get update -y && \
+    apt-get install -y ffmpeg && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Expose ports (if your app actually uses them)
+EXPOSE 8080
+EXPOSE 80
+
+# Entrypoint + default command
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["java", "-jar", "/usr/share/app/app.jar"]

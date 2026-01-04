@@ -1,0 +1,119 @@
+name: Build FFmpeg images for all Azul Java versions
+
+on:
+  push:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+jobs:
+  discover-tags:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.extract.outputs.versions }}
+      archmap: ${{ steps.extract.outputs.archmap }}
+      include: ${{ steps.matrix.outputs.include }}
+    steps:
+      - name: Fetch tags from Docker Hub
+        id: fetch
+        run: |
+          curl -s "https://hub.docker.com/v2/repositories/bskjon/azuljava/tags?page_size=100" > tags.json
+
+      - name: Extract Java versions and architectures
+        id: extract
+        run: |
+          # Extract numeric versions (17, 21, 25, ...)
+          versions=$(jq -r '.results[].name' tags.json | grep -E '^[0-9]+$' | sort -u)
+
+          # Build arch map: { "17": ["amd64","arm64","arm/v7"], "21": ["amd64","arm64"] }
+          map="{"
+          for v in $versions; do
+            archs=$(jq -r '.results[].name' tags.json | grep "^${v}-" | sed "s/^${v}-//" | jq -R -s -c 'split("\n")[:-1]')
+            map="$map\"$v\":$archs,"
+          done
+          map="${map%,}}"
+
+          echo "versions=$(echo $versions | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          echo "archmap=$map" >> $GITHUB_OUTPUT
+
+      - name: Build matrix include list
+        id: matrix
+        run: |
+          include="[]"
+          versions=$(echo '${{ steps.extract.outputs.versions }}' | jq -r '.[]')
+          archmap='${{ steps.extract.outputs.archmap }}'
+
+          for v in $versions; do
+            for a in $(echo $archmap | jq -r --arg v "$v" '.[$v][]'); do
+              include=$(echo $include | jq --arg v "$v" --arg a "$a" '. + [{"java_version":$v,"arch":$a}]')
+            done
+          done
+
+          echo "include=$include" >> $GITHUB_OUTPUT
+
+  build:
+    needs: discover-tags
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.discover-tags.outputs.include) }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Generate date/uuid tag
+        id: tag
+        run: echo "tag=$(date -u +'%Y.%m.%d')-$(uuidgen | cut -c 1-8)" >> $GITHUB_OUTPUT
+
+      - name: Docker login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_NAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Build and push single-arch image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.ffmpeg
+          platforms: linux/${{ matrix.arch }}
+          push: true
+          provenance: false
+          sbom: false
+          build-args: |
+            JAVA_VERSION=${{ matrix.java_version }}
+          tags: |
+            bskjon/debian-azuljava${{ matrix.java_version }}-ffmpeg:${{ matrix.arch }}
+            bskjon/debian-azuljava${{ matrix.java_version }}-ffmpeg:${{ matrix.arch }}-${{ github.sha }}
+            bskjon/debian-azuljava${{ matrix.java_version }}-ffmpeg:${{ matrix.arch }}-${{ steps.tag.outputs.tag }}
+
+  manifest:
+    needs: [discover-tags, build]
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        java_version: ${{ fromJson(needs.discover-tags.outputs.versions) }}
+
+    steps:
+      - name: Docker login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_NAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Create and push manifest
+        run: |
+          archmap='${{ needs.discover-tags.outputs.archmap }}'
+          archs=$(echo $archmap | jq -r --arg v "${{ matrix.java_version }}" '.[$v][]')
+
+          # Build manifest command
+          cmd="docker manifest create bskjon/debian-azuljava${{ matrix.java_version }}-ffmpeg:latest"
+
+          for a in $archs; do
+            cmd="$cmd --amend bskjon/debian-azuljava${{ matrix.java_version }}-ffmpeg:$a"
+          done
+
+          eval $cmd
+          docker manifest push bskjon/debian-azuljava${{ matrix.java_version }}-ffmpeg:latest

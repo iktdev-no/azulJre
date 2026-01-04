@@ -1,4 +1,4 @@
-name: Build Azul Java Images
+name: Build Azul Java 21
 
 on:
   workflow_dispatch:

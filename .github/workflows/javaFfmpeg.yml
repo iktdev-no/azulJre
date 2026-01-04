@@ -48,7 +48,7 @@ jobs:
             done
           done
 
-          echo "include=$include" >> $GITHUB_OUTPUT
+          echo "include=$(echo "$include" | jq -c .)" >> $GITHUB_OUTPUT
 
   build:
     needs: discover-tags

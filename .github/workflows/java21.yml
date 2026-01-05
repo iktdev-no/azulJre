@@ -1,6 +1,8 @@
 name: Build Azul Java 21
 
 on:
+  push:
+    branches: [ "master" ]  
   workflow_dispatch:
     inputs:
       JAVA_VERSION:

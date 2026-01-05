@@ -1,44 +1,12 @@
 name: Build FFmpeg images for all Azul Java versions
 
 on:
+  push:
+    branches: [ "master" ]
   workflow_dispatch:
 
 jobs:
-  wait-for-java-builds:
-    runs-on: ubuntu-latest
-    outputs:
-      ready: ${{ steps.check.outputs.ready }}
-
-    steps:
-      # Try to download Java 17 artifact
-      - name: Check Java 17 build
-        id: j17
-        uses: actions/download-artifact@v4
-        with:
-          name: java-17-done
-        continue-on-error: true
-
-      # Try to download Java 21 artifact
-      - name: Check Java 21 build
-        id: j21
-        uses: actions/download-artifact@v4
-        with:
-          name: java-21-done
-        continue-on-error: true
-
-      # Determine if both are present
-      - name: Verify both Java builds are complete
-        id: check
-        run: |
-          if [ -f java-17.txt ] && [ -f java-21.txt ]; then
-            echo "ready=true" >> $GITHUB_OUTPUT
-          else
-            echo "ready=false" >> $GITHUB_OUTPUT
-          fi
-
   discover-tags:
-    needs: wait-for-java-builds
-    if: needs.wait-for-java-builds.outputs.ready == 'true'
     runs-on: ubuntu-latest
     outputs:
       versions: ${{ steps.extract.outputs.versions }}
@@ -92,7 +60,6 @@ jobs:
 
   build:
     needs: discover-tags
-    if: needs.wait-for-java-builds.outputs.ready == 'true'
     runs-on: ubuntu-latest
 
     strategy:
@@ -124,7 +91,7 @@ jobs:
         run: |
           docker buildx create --use --name multiarch-builder
           docker buildx inspect --bootstrap
-
+          
 
       # ⭐ FIX: Force refresh of Azul Java manifest so Buildx sees ARMv7
       - name: Refresh Azul Java manifest cache
@@ -169,7 +136,6 @@ jobs:
 
   manifest:
     needs: [discover-tags, build]
-    if: needs.wait-for-java-builds.outputs.ready == 'true'
     runs-on: ubuntu-latest
 
     strategy:

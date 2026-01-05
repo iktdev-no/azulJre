@@ -12,6 +12,7 @@ jobs:
       versions: ${{ steps.extract.outputs.versions }}
       archmap: ${{ steps.extract.outputs.archmap }}
       include: ${{ steps.matrix.outputs.include }}
+
     steps:
       - name: Fetch tags from Docker Hub
         id: fetch
@@ -24,10 +25,15 @@ jobs:
           # Extract numeric versions (17, 21, 25, ...)
           versions=$(jq -r '.results[].name' tags.json | grep -E '^[0-9]+$' | sort -u)
 
-          # Build arch map: { "17": ["amd64","arm64","arm/v7"], "21": ["amd64","arm64"] }
+          # Build arch map with filtering:
+          # Only keep amd64, arm64, armv7
           map="{"
           for v in $versions; do
-            archs=$(jq -r '.results[].name' tags.json | grep "^${v}-" | sed "s/^${v}-//" | jq -R -s -c 'split("\n")[:-1]')
+            archs=$(jq -r '.results[].name' tags.json \
+              | grep "^${v}-" \
+              | sed "s/^${v}-//" \
+              | grep -E '^(amd64|arm64|armv7)$' \
+              | jq -R -s -c 'split("\n")[:-1]')
             map="$map\"$v\":$archs,"
           done
           map="${map%,}}"
@@ -49,6 +55,7 @@ jobs:
           done
 
           echo "include=$(echo "$include" | jq -c .)" >> $GITHUB_OUTPUT
+
 
   build:
     needs: discover-tags
@@ -75,7 +82,17 @@ jobs:
       - name: Refresh Azul Java manifest cache
         run: docker pull bskjon/azuljava:${{ matrix.java_version }} || true
 
-      - name: Print archInfo
+      # ⭐ Normalize arch for Buildx (armv7 → arm/v7)
+      - name: Normalize arch for platform
+        id: norm
+        run: |
+          if [ "${{ matrix.arch }}" = "armv7" ]; then
+            echo "platform=arm/v7" >> $GITHUB_OUTPUT
+          else
+            echo "platform=${{ matrix.arch }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Print Azul Java manifest info
         run: docker buildx imagetools inspect bskjon/azuljava:${{ matrix.java_version }}
 
       - name: Build and push single-arch image
@@ -84,7 +101,7 @@ jobs:
         with:
           context: .
           file: Dockerfile.ffmpeg
-          platforms: linux/${{ matrix.arch }}
+          platforms: linux/${{ steps.norm.outputs.platform }}
           push: true
           provenance: false
           sbom: false
@@ -116,7 +133,6 @@ jobs:
           archmap='${{ needs.discover-tags.outputs.archmap }}'
           archs=$(echo $archmap | jq -r --arg v "${{ matrix.java_version }}" '.[$v][]')
 
-          # Build manifest command
           cmd="docker manifest create bskjon/debian-azuljava${{ matrix.java_version }}-ffmpeg:latest"
 
           for a in $archs; do

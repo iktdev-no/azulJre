@@ -4,6 +4,9 @@ ARG JAVA_VERSION=17
 # Use the correct Azul Java base image for the version
 FROM bskjon/azuljava:${JAVA_VERSION}
 
+ARG JAVA_VERSION
+
+
 RUN echo "Using Java version: ${JAVA_VERSION}"
 
 

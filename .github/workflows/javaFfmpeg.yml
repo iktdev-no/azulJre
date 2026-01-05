@@ -38,7 +38,8 @@ jobs:
           done
           map="${map%,}}"
 
-          echo "versions=$(echo $versions | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          # FIXED: correct JSON list of versions
+          echo "versions=$(printf '%s\n' $versions | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
           echo "archmap=$map" >> $GITHUB_OUTPUT
 
       - name: Build matrix include list

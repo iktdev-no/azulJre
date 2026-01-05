@@ -95,6 +95,12 @@ jobs:
       - name: Print Azul Java manifest info
         run: docker buildx imagetools inspect bskjon/azuljava:${{ matrix.java_version }}
 
+      - name: Debug matrix values
+        run: |
+            echo "java_version='${{ matrix.java_version }}'"
+            echo "arch='${{ matrix.arch }}'"
+
+
       - name: Build and push single-arch image
         id: build
         uses: docker/build-push-action@v5

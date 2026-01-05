@@ -1,12 +1,7 @@
 name: Build FFmpeg images for all Azul Java versions
 
 on:
-  workflow_run:
-    workflows:
-      - "java17.yml"
-      - "java21.yml"
-    types:
-      - completed
+  workflow_dispatch:
 
 jobs:
   wait-for-java-builds:

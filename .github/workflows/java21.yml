@@ -4,21 +4,6 @@ on:
   push:
     branches: [ "master" ]  
   workflow_dispatch:
-    inputs:
-      JAVA_VERSION:
-        description: "Java version"
-        required: true
-        default: "21"
-
-      AZUL_URL_X64:
-        description: "Azul URL x64"
-        required: true
-        default: "https://cdn.azul.com/zulu/bin/zulu21.46.19-ca-jre21.0.9-linux_x64.tar.gz"
-
-      AZUL_URL_ARM64:
-        description: "Azul URL ARM64"
-        required: true
-        default: "https://cdn.azul.com/zulu/bin/zulu21.46.19-ca-jre21.0.9-linux_aarch64.tar.gz"
 
 
 jobs:
@@ -26,16 +11,16 @@ jobs:
     uses: ./.github/workflows/build-arch.yml
     with:
       arch: "amd64"
-      java_version: ${{ inputs.JAVA_VERSION }}
-      download_url: ${{ inputs.AZUL_URL_X64 }}
+      java_version: ${{ vars.JAVA_21 }}
+      download_url: ${{ vars.AZUL_21_URL_X64 }}
     secrets: inherit
 
   build-arm64:
     uses: ./.github/workflows/build-arch.yml
     with:
       arch: "arm64"
-      java_version: ${{ inputs.JAVA_VERSION }}
-      download_url: ${{ inputs.AZUL_URL_ARM64 }}
+      java_version: ${{ vars.JAVA_21 }}
+      download_url: ${{ vars.AZUL_21_URL_ARM64 }}
     secrets: inherit
 
   manifest:
@@ -51,8 +36,8 @@ jobs:
 
       - name: Create and push manifest
         run: |
-          docker manifest create bskjon/azuljava:${{ inputs.JAVA_VERSION }} \
+          docker manifest create bskjon/azuljava:${{ vars.JAVA_21 }} \
             --amend bskjon/azuljava@${{ needs.build-amd64.outputs.digest }} \
             --amend bskjon/azuljava@${{ needs.build-arm64.outputs.digest }}
 
-          docker manifest push bskjon/azuljava:${{ inputs.JAVA_VERSION }}
+          docker manifest push bskjon/azuljava:${{ vars.JAVA_21 }}

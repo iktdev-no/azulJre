@@ -75,6 +75,9 @@ jobs:
       - name: Refresh Azul Java manifest cache
         run: docker pull bskjon/azuljava:${{ matrix.java_version }} || true
 
+      - name: Print archInfo
+        run: docker buildx imagetools inspect bskjon/azuljava:${{ matrix.java_version }}
+
       - name: Build and push single-arch image
         id: build
         uses: docker/build-push-action@v5

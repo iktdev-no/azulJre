@@ -40,6 +40,13 @@ jobs:
       - name: Setup Buildx
         uses: docker/setup-buildx-action@v3
 
+      # ⭐ Normalize arch for tagging (arm/v7 → armv7)
+      - name: Normalize arch for tagging
+        id: norm
+        run: |
+          TAG_ARCH=$(echo "${{ inputs.arch }}" | sed 's|/||g')
+          echo "tag_arch=$TAG_ARCH" >> $GITHUB_OUTPUT
+
       - name: Build and push image
         id: build
         uses: docker/build-push-action@v5
@@ -51,6 +58,6 @@ jobs:
           provenance: false
           sbom: false
           tags: |
-            bskjon/azuljava:${{ inputs.java_version }}-${{ inputs.arch }}
+            bskjon/azuljava:${{ inputs.java_version }}-${{ steps.norm.outputs.tag_arch }}
           build-args: |
             JRE=${{ inputs.java_version }}

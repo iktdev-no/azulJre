@@ -10,9 +10,6 @@ ARG JAVA_VERSION
 RUN echo "Using Java version: ${JAVA_VERSION}"
 
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-
 # Install ffmpeg
 RUN mkdir -p /src/input && \
     apt-get update -y && \

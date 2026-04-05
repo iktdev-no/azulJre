@@ -18,6 +18,9 @@ RUN apt-get update \
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
 EXPOSE 8080
 EXPOSE 80
 
